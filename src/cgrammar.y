@@ -303,7 +303,7 @@ extern void yyerror (char *);
 %type <expr> shiftIterExpr relationalIterExpr equalityIterExpr bitandIterExpr
 %type <expr> xorIterExpr bitorIterExpr andIterExpr
 %type <expr> orIterExpr conditionalIterExpr assignIterExpr iterArgExpr
-%type <expr> expr optExpr constantExpr
+%type <expr> expr optExpr forInitializer constantExpr
 %type <expr> init macroBody iterBody endBody partialIterStmt iterSelectionStmt
 %type <expr> stmt stmtList fcnBody iterStmt iterDefStmt iterDefStmtList debugStmt
 %type <expr> labeledStmt caseStmt defaultStmt 
@@ -1142,6 +1142,29 @@ instanceDecl
    }
 ;
 
+forInitializer
+ : optExpr 
+ | completeTypeSpecifier IsType 
+   { $$ = exprNode_makeError (); } 
+ | completeTypeSpecifier NotType namedDecl NotType 
+   {
+     setProcessingVars ($1); 
+     processNamedDecl ($3); 
+   }
+   IsType optDeclarators IsType 
+   { 
+     unsetProcessingVars (); 
+     $$ = exprNode_makeEmptyInitialization ($3); 
+     DPRINTF (("Empty initialization: %s", exprNode_unparse ($$)));
+   }
+ | completeTypeSpecifier NotType namedDecl NotType TASSIGN 
+   { setProcessingVars ($1); processNamedDecl ($3); }
+   IsType init optDeclarators IsType 
+   { $$ = exprNode_concat ($9, exprNode_makeInitialization ($3, $8)); 
+     unsetProcessingVars ();
+   }
+;
+
 namedInitializerType
  : namedInitializer { $$ = $1; } 
  | TYPE_NAME { $$ = exprNode_fromIdentifier (usymtab_getTypeEntry (ctype_typeId ($1))); }
@@ -1741,11 +1764,13 @@ iterDefIterationStmt
 ;
 
 forPred
- : CFOR TLPAREN optExpr TSEMI optExpr TSEMI 
+ : CFOR { context_enterInnerContext();}
+   TLPAREN forInitializer TSEMI optExpr TSEMI 
    { context_setProtectVars (); } optExpr { context_sizeofReleaseVars (); }
    TRPAREN 
-   { $$ = exprNode_forPred ($3, $5, $8); 
-     context_enterForClause ($5); }
+   { $$ = exprNode_forPred ($4, $6, $9);
+     context_enterForClause ($6); 
+   }
 ;
 
 partialIterStmt
@@ -2157,7 +2182,11 @@ iterationStmt
  | doHeader stmt WHILE TLPAREN expr TRPAREN TSEMI 
    { $$ = exprNode_statement (exprNode_doWhile ($2, $5), $7); }
  | forPred stmt 
-   { $$ = exprNode_for ($1, $2); context_exitForClause ($1, $2); }
+   { 
+     $$ = exprNode_for ($1, $2); 
+     context_exitForClause ($1, $2); 
+     context_exitInnerPlain();
+   }
 ;
 
 iterationStmtErr 
@@ -2166,7 +2195,12 @@ iterationStmtErr
    { $$ = exprNode_statement (exprNode_doWhile ($2, $5), $7); }
  | doHeader stmtErr WHILE TLPAREN expr TRPAREN 
    { $$ = exprNode_doWhile ($2, $5); }
- | forPred stmtErr { $$ = exprNode_for ($1, $2); context_exitForClause ($1, $2); }
+ | forPred stmtErr 
+   { 
+   $$ = exprNode_for ($1, $2);
+   context_exitForClause ($1, $2); 
+   context_exitInnerPlain();
+   }
 ;
  
 jumpStmt

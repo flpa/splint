@@ -7972,12 +7972,6 @@ exprNode exprNode_forPred (/*@only@*/ exprNode init, /*@only@*/ exprNode test,
     }
 
   exprNode_mergeUSs (ret, init);
-
-  if (exprNode_isDefined (init))
-    {
-      exprNode_checkUse (ret, init->sref, init->loc);
-    }
-
   exprNode_mergeUSs (ret, test);
 
   if (exprNode_isDefined (test))

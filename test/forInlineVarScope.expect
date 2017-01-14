@@ -1,0 +1,5 @@
+
+forInlineVarScope.c: (in function main)
+forInlineVarScope.c:4:10: Unrecognized identifier: i
+
+Finished checking --- 1 code warning, as expected

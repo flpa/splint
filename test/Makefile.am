@@ -53,7 +53,8 @@ UNITTESTS = \
   stringliteral \
   structassign typequals typeof ud ulstypes union unioninit \
   unnamedsu unreachable unsignedcompare \
-  unused ullint utypes void widestrings
+  unused ullint utypes void widestrings \
+  varDeclInFunction forInlineVarDecl forInlineVarScope
 UNITEXPECTS = $(addsuffix .expect, $(UNITTESTS))
 
 SUBDIRTESTS = metastate mergestate tainted fileio \
@@ -418,6 +419,18 @@ flags:
 .PHONY: forbody
 forbody:
 	${SPLINTR} forbody.c -expect 2
+###
+### 2016-12-28: C99-style inline declaration of for-loop variables
+###
+
+.PHONY: forInlineVarDecl
+forInlineVarDecl:
+	${SPLINTRN} forInlineVarDecl.c
+
+# really separate test?
+.PHONY: forInlineVarScope
+forInlineVarScope:
+	${SPLINTRN} -expect 1 forInlineVarScope.c
 
 ### Added 2001-06-03
 .PHONY: format
@@ -926,6 +939,14 @@ utypes:
 	${SPLINTRN} utypes.c -expect 2
 
 ###
+
+###
+### 2016-12-28: C99-style declaration of variables in the middle of a function
+###
+
+.PHONY: varDeclInFunction
+varDeclInFunction:
+	${SPLINTRN} varDeclInFunction.c
 
 .PHONY: void
 void:
